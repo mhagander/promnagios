@@ -23,6 +23,8 @@ if __name__ == "__main__":
                         help='Filename to write to')
     parser.add_argument('--hostsuffix',
                         help='Add suffix to hostnames')
+    parser.add_argument('--dependon',
+                        help='Create service dependency')
     args = parser.parse_args()
 
     if not args.prometheus or not args.target:
@@ -64,6 +66,16 @@ if __name__ == "__main__":
    use                   promservice
 }}
 """.format(h, m['name']))
+            if args.dependon:
+                s.write("""define servicedependency{{
+   host_name             {0}
+   service_description   ping
+   dependent_host_name   {1}
+   dependent_service_description {2}
+   execution_failure_criteria    w,u,c
+   notification_failure_criteria w,u,c
+}}
+""".format(h, h, m['name']))
 
     if os.path.isfile(args.target):
         with open(args.target, 'r') as f:
