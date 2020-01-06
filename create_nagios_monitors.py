@@ -34,7 +34,7 @@ if __name__ == "__main__":
 
     def _fetch_hostlist(expr):
         r = requests.get(
-            '{0}/api/v1/series', params={
+            '{0}/api/v1/series'.format(args.prometheus), params={
                 'match[]': expr,
                 'start': time.time() - 12*3600, # Any host that has been seen in the past 12 hours
             }
