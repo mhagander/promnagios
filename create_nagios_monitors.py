@@ -11,6 +11,7 @@ import io
 import argparse
 import sys
 import os
+import time
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -33,10 +34,13 @@ if __name__ == "__main__":
 
     def _fetch_hostlist(expr):
         r = requests.get(
-            '{0}/api/v1/query?query={1}'.format(args.prometheus, expr)
+            '{0}/api/v1/series', params={
+                'match[]': expr,
+                'start': time.time() - 12*3600, # Any host that has been seen in the past 12 hours
+            }
         )
         return list(set(
-            [i['metric']['name'] for i in r.json()['data']['result']]
+            [i['name'] for i in r.json()['data']]
         ))
 
     monitors = []
