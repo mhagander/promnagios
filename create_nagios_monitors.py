@@ -43,6 +43,11 @@ if __name__ == "__main__":
             [i['name'] for i in r.json()['data']]
         ))
 
+    r = requests.get('{0}/api/v1/targets'.format(args.prometheus))
+    targets = set(
+        [t['labels']['name'] for t in r.json()['data']['activeTargets']]
+    )
+
     monitors = []
 
     r = requests.get('{0}/api/v1/rules'.format(args.prometheus))
@@ -62,6 +67,9 @@ if __name__ == "__main__":
     s = io.StringIO()
     for m in sorted(monitors, key=lambda x: x['name']):
         for h in sorted(m['hosts']):
+            if h not in targets:
+                continue
+
             if args.hostsuffix:
                 h = "{0}.{1}".format(h, args.hostsuffix)
             s.write("""define service {{
