@@ -17,6 +17,11 @@ label-filtered metric in which case only those with that label will be
 included. Once the metrics are found, the hostname is extracted from
 the label `name`.
 
+If the parameter `--refreshstate` is given, commands to refresh the
+state of all alerts that are *not* firing will be written to this
+file at the end of the run, to ensure they are not flagged as stale
+in Nagios.
+
 
 ## proxy_prometheus_alerts.py
 

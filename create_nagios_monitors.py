@@ -26,6 +26,8 @@ if __name__ == "__main__":
                         help='Add suffix to hostnames')
     parser.add_argument('--dependon',
                         help='Create service dependency')
+    parser.add_argument('--refreshstate',
+                        help='Generate service refreshes to specified commandfile')
     args = parser.parse_args()
 
     if not args.prometheus or not args.target:
@@ -64,11 +66,20 @@ if __name__ == "__main__":
                 'hosts': _fetch_hostlist(rule['annotations']['hostmap']),
             })
 
+    r = requests.get('{0}/api/v1/alerts'.format(args.prometheus))
+    alerts = r.json()['data']['alerts']
+    activealerts = [(a['labels']['name'], a['labels']['alertname']) for a in alerts if a['state'] == 'firing']
+
     s = io.StringIO()
+    refreshcommands = io.StringIO()
+    t = time.time()
+
     for m in sorted(monitors, key=lambda x: x['name']):
         for h in sorted(m['hosts']):
             if h not in targets:
                 continue
+
+            shorthost = h  # Save away before we rewrite it
 
             if args.hostsuffix:
                 h = "{0}.{1}".format(h, args.hostsuffix)
@@ -89,6 +100,14 @@ if __name__ == "__main__":
 }}
 """.format(h, h, m['name']))
 
+            # If this service is *not* alerting, then refresh it. If it *is* alerting, we ignore it because
+            # AlertManager is going to push the actual alert with refresh.
+            if (shorthost, m['name']) not in activealerts:
+                refreshcommands.write(
+                    "[{0}] PROCESS_SERVICE_CHECK_RESULT;{1};{2};{3};{4}\n".format(
+                        t, h, m['name'], 0, "Refreshed OK",
+                    ))
+
     if os.path.isfile(args.target):
         with open(args.target, 'r') as f:
             old = f.read()
@@ -102,4 +121,9 @@ if __name__ == "__main__":
         os.rename("{0}.new".format(args.target), args.target)
         sys.exit(1)
 
-    # No change, so just exit
+    if args.refreshstate:
+        # We'll refresh the state of both old and new services, to be sure.
+        # Nagios will just ignore the unknown ones.
+        s = io.StringIO()
+        with open(args.refreshstate, 'w') as f:
+            f.write(refreshcommands.getvalue())
