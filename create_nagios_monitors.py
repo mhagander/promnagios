@@ -34,7 +34,7 @@ if __name__ == "__main__":
         print("Must specify both prometheus base and target file")
         sys.exit(2)
 
-    def _fetch_hostlist(expr):
+    def _fetch_hostlist(expr, excludehosts):
         r = requests.get(
             '{0}/api/v1/series'.format(args.prometheus), params={
                 'match[]': expr,
@@ -42,7 +42,7 @@ if __name__ == "__main__":
             }
         )
         return list(set(
-            [i['name'] for i in r.json()['data']]
+            [i['name'] for i in r.json()['data'] if i['name'] not in excludehosts]
         ))
 
     r = requests.get('{0}/api/v1/targets'.format(args.prometheus))
@@ -63,7 +63,10 @@ if __name__ == "__main__":
 
             monitors.append({
                 'name': rule['name'],
-                'hosts': _fetch_hostlist(rule['annotations']['hostmap']),
+                'hosts': _fetch_hostlist(
+                    rule['annotations']['hostmap'],
+                    [h.strip() for h in rule['annotations'].get('excludehosts', '').split(',')],
+                )
             })
 
     r = requests.get('{0}/api/v1/alerts'.format(args.prometheus))
