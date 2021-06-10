@@ -127,6 +127,5 @@ if __name__ == "__main__":
     if args.refreshstate:
         # We'll refresh the state of both old and new services, to be sure.
         # Nagios will just ignore the unknown ones.
-        s = io.StringIO()
         with open(args.refreshstate, 'w') as f:
             f.write(refreshcommands.getvalue())
