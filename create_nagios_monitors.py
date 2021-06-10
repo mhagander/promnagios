@@ -11,6 +11,7 @@ import io
 import argparse
 import sys
 import os
+import stat
 import time
 
 if __name__ == "__main__":
@@ -127,5 +128,12 @@ if __name__ == "__main__":
     if args.refreshstate:
         # We'll refresh the state of both old and new services, to be sure.
         # Nagios will just ignore the unknown ones.
+        try:
+            if not stat.S_ISFIFO(os.stat(args.refreshstate).st_mode):
+                print("{} is not a FIFO!".format(args.refreshstate))
+                sys.exit(1)
+        except FileNotFoundError:
+            print("{} does not exist".format(args.refreshstate))
+
         with open(args.refreshstate, 'w') as f:
             f.write(refreshcommands.getvalue())
